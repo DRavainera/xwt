@@ -1,6 +1,13 @@
 <Project>
-  <PropertyGroup>
-    <InMonoDevelopTree Condition="Exists('$(MSBuildThisFileDirectory)..\..\msbuild\MonoDevelop.AfterCommon.props')">true</InMonoDevelopTree>
-    <TargetFrameworks Condition=" '$(InMonoDevelopTree)' == 'true' ">net472</TargetFrameworks>
+  <PropertyGroup Condition="'$(MSBuildProjectExtension)' == '.csproj' AND '$(UsingMicrosoftNETSdk)' != 'true' AND Exists('$(MSBuildProjectDirectory)\..\..\..\MonoDevelop.props')">
+    <NoStdLib>false</NoStdLib>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="Exists('$(MSBuildProjectDirectory)\..\..\MonoDevelop.props')">
+    <PublicSign>True</PublicSign>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(InMonoDevelopTree)' == 'true' ">
+    <TargetFrameworks Condition=" '$(TargetFrameworks)' == '' ">net472</TargetFrameworks>
   </PropertyGroup>
 </Project>
