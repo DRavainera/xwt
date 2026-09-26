@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net40</TargetFrameworks>
+    <TargetFrameworks>net40;net10.0</TargetFrameworks>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>..\xwt.snk</AssemblyOriginatorKeyFile>
@@ -31,9 +31,13 @@
 Xwt works by exposing one unified API across all environments that is mapped to a set of native controls on each platform.
 
 The framework consists of the frontend (Xwt core) and platform specific backends. Additionally to this core Xwt package you need to add an Xwt toolkit package (Xwt.*) for every platform you want your application to target.</Description>
+    <LangVersion Condition="'$(TargetFramework)' == 'net10.0'">latest</LangVersion>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="System.Xaml" />
+    <!-- System.Xaml only exists on .NET Framework: the net10.0 build gets
+         the compatibility shim in Xwt/Compatibility/SystemXamlShim.cs -->
+    <Reference Include="System.Xaml" Condition="'$(TargetFramework)' == 'net40'" />
+    <Compile Remove="Xwt\Compatibility\*" Condition="'$(TargetFramework)' != 'net10.0'" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\LICENSE.txt" Pack="true" PackagePath=""/>

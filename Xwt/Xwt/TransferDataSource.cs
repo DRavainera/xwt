@@ -146,11 +146,16 @@ namespace Xwt
 		/// <param name="val">The value to serialize.</param>
 		public static byte[] SerializeValue (object val)
 		{
+#if NET
+			throw new PlatformNotSupportedException (
+				"BinaryFormatter drag-and-drop payloads are not supported on modern .NET (SYSLIB0011).");
+#else
 			using (MemoryStream ms = new MemoryStream ()) {
 				BinaryFormatter bf = new BinaryFormatter ();
 				bf.Serialize (ms, val);
 				return ms.ToArray ();
 			}
+#endif
 		}
 		
 		/// <summary>
@@ -160,10 +165,15 @@ namespace Xwt
 		/// <param name="data">The byte array containing the serialized value.</param>
 		public static object DeserializeValue (byte[] data)
 		{
+#if NET
+			throw new PlatformNotSupportedException (
+				"BinaryFormatter drag-and-drop payloads are not supported on modern .NET (SYSLIB0011).");
+#else
 			using (MemoryStream ms = new MemoryStream (data)) {
 				BinaryFormatter bf = new BinaryFormatter ();
 				return bf.Deserialize (ms);
 			}
+#endif
 		}
 	}
 	

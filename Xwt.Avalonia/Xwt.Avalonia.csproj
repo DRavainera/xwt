@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- The Xwt.Avalonia backend is part of the .NET 10 fork port: it maps
+         the Xwt frontend to Avalonia 11+ the same way Xwt.Gtk maps it to
+         Gtk# and Xwt.WPF maps it to WPF. It intentionally has no net40
+         target (Avalonia requires a modern runtime). -->
+    <!-- Plural on purpose: the xwt tree's Directory.Build.props injects
+         net472 when TargetFrameworks is empty. -->
+    <TargetFrameworks>net10.0</TargetFrameworks>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>Xwt.AvaloniaBackend</RootNamespace>
+    <AssemblyName>Xwt.Avalonia</AssemblyName>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <SignAssembly>false</SignAssembly>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Xwt\Xwt.csproj" />
+    <!-- Avalonia only exists for modern .NET; the (unused) net40 target of
+         this project must not try to resolve it. -->
+    <PackageReference Include="Avalonia" Version="12.1.2" Condition="'$(TargetFramework)' == 'net10.0'" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.2" Condition="'$(TargetFramework)' == 'net10.0'" />
+  </ItemGroup>
+
+</Project>
