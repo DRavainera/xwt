@@ -10,6 +10,8 @@
 
 using System;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
+using Avalonia.Platform;
 using Xwt.Backends;
 using AButton = Avalonia.Controls.Button;
 using ACanvas = Avalonia.Controls.Canvas;
@@ -239,26 +241,59 @@ namespace Xwt.AvaloniaBackend
 		public override void Dispose () { }
 	}
 
-	// ----- Canvas (Xwt.Canvas ↔ Avalonia Canvas) -----
+	// ----- Canvas (Xwt.Canvas ↔ render host + child overlay) -----
 
+	/// <summary>
+	/// Canvas backend: renders the frontend's OnDraw into an offscreen Skia
+	/// surface each frame (the same WriteableBitmap + SKSurface pattern the
+	/// MonoDevelop SkTextEditor proves in production), then presents it via
+	/// DrawImage from a Render override. The Xwt Context the frontend receives
+	/// IS the SkDrawContext created for that surface, so the wave-1 drawing
+	/// handlers apply. Child widgets live on an overlay Canvas above the
+	/// render host.
+	/// </summary>
 	public class CanvasBackend : AvaloniaWidgetBackend, ICanvasBackend
 	{
-		ACanvas canvas;
+		/// <summary>The drawing surface host: a plain Control with a Render
+		/// override — Avalonia 12 seals Panel.Render but NOT Control.Render
+		/// (the same pattern SkTextEditor uses in the shell).</summary>
+		class CanvasRenderHost : Avalonia.Controls.Control
+		{
+			public Action<Avalonia.Media.DrawingContext> OnFrame;
 
-		public CanvasBackend () => canvas = new ACanvas ();
+			public override void Render (Avalonia.Media.DrawingContext context)
+				=> OnFrame?.Invoke (context);
+		}
 
-		protected override AControl CreateNativeWidget () => canvas = new ACanvas ();
+		Avalonia.Controls.Grid grid;
+		CanvasRenderHost host;
+		ACanvas overlay;
+		WriteableBitmap front;
+		int bufferW, bufferH;
+		WriteableBitmap pendingDispose;
 
-		public void QueueDraw () => canvas.InvalidateVisual ();
+		public CanvasBackend () { }
 
-		public void QueueDraw (Rectangle rect) => canvas.InvalidateVisual ();
+		protected override AControl CreateNativeWidget ()
+		{
+			host = new CanvasRenderHost { OnFrame = RenderFrame };
+			overlay = new ACanvas ();
+			grid = new Avalonia.Controls.Grid ();
+			grid.Children.Add (host);
+			grid.Children.Add (overlay);
+			return grid;
+		}
+
+		public void QueueDraw () => host.InvalidateVisual ();
+
+		public void QueueDraw (Rectangle rect) => host.InvalidateVisual ();
 
 		public void AddChild (IWidgetBackend widget, Rectangle bounds)
 		{
 			var control = widget.Native<AControl> ();
 			ACanvas.SetLeft (control, bounds.X);
 			ACanvas.SetTop (control, bounds.Y);
-			canvas.Children.Add (control);
+			overlay.Children.Add (control);
 		}
 
 		public void SetChildBounds (IWidgetBackend widget, Rectangle bounds)
@@ -271,8 +306,46 @@ namespace Xwt.AvaloniaBackend
 		}
 
 		public void RemoveChild (IWidgetBackend widget)
-			=> canvas.Children.Remove (widget.Native<AControl> ());
+			=> overlay.Children.Remove (widget.Native<AControl> ());
 
-		public override void Dispose () { }
+		void RenderFrame (Avalonia.Media.DrawingContext context)
+		{
+			int w = Math.Max (1, (int)Math.Ceiling (host.Bounds.Width));
+			int h = Math.Max (1, (int)Math.Ceiling (host.Bounds.Height));
+			if (front is null || bufferW != w || bufferH != h) {
+				var next = new WriteableBitmap (new Avalonia.PixelSize (w, h), new Avalonia.Vector (96, 96), PixelFormats.Bgra8888, AlphaFormat.Opaque);
+				using (var fb = next.Lock ()) {
+					var info = new SkiaSharp.SKImageInfo (w, h, SkiaSharp.SKColorType.Bgra8888, SkiaSharp.SKAlphaType.Opaque);
+					using var surface = SkiaSharp.SKSurface.Create (info, fb.Address, fb.RowBytes);
+					if (surface is not null) {
+						var ctx = new SkDrawContext (surface.Canvas);
+						try {
+							InvokeUser (() => (EventSink as ICanvasEventSink)?.OnDraw (ctx, new Rectangle (0, 0, w, h)));
+						} finally {
+							surface.Canvas.Flush ();
+						}
+					}
+				}
+				var old = front;
+				front = next;
+				bufferW = w;
+				bufferH = h;
+				// The just-replaced frame may still be in flight at the
+				// compositor: release it one render later (SkTextEditor's
+				// ghost-frame fix).
+				pendingDispose?.Dispose ();
+				pendingDispose = old;
+			}
+			if (front is not null)
+				context.DrawImage (front, new Avalonia.Rect (0, 0, host.Bounds.Width, host.Bounds.Height));
+		}
+
+		public override void Dispose ()
+		{
+			front?.Dispose ();
+			front = null;
+			if (host is not null)
+				host.OnFrame = null;
+		}
 	}
 }

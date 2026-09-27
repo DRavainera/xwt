@@ -68,6 +68,53 @@ namespace Xwt.AvaloniaBackend.Smoke
 			entry.Text = "typed";
 			Check ("entry-text", ((Avalonia.Controls.TextBox)Xwt.Toolkit.CurrentEngine.GetNativeWidget (entry)).Text == "typed");
 
+			// ---- Wave 1: drawing handlers (Context/Font/TextLayout/Gradient/
+			// Image over Avalonia.Media + SkiaSharp) ----
+
+			// 7. Offscreen raster through ImageBuilder + Context primitives:
+			// fill a red rect on a 16x16 builder and read pixels back.
+			using (var ib = new Xwt.Drawing.ImageBuilder (16, 16)) {
+				var ctx = ib.Context;
+				ctx.SetColor (Xwt.Drawing.Colors.Red);
+				ctx.Rectangle (2, 2, 8, 8);
+				ctx.Fill ();
+				using var bmp = ib.ToBitmap ();
+				Check ("imagebuilder-fill", bmp.GetPixel (5, 5).Red > 0.7 && bmp.GetPixel (0, 0).Alpha < 0.1);
+			}
+
+			// 8. Text layout: measure + index mapping through the Font handler.
+			var layout = new Xwt.Drawing.TextLayout { Text = "Hello Wave1", Font = Xwt.Drawing.Font.FromName ("Segoe UI 12") };
+			var laySize = layout.GetSize ();
+			Check ("textlayout-size", laySize.Width > 20 && laySize.Height > 8);
+			var idx = layout.GetIndexFromCoordinates (1, 5);
+			Check ("textlayout-index", idx == 0 || idx == 1);
+
+			// 9. Gradient fill through Context.Pattern (ImagePattern path).
+			var grad = new Xwt.Drawing.LinearGradient (0, 0, 16, 0);
+			grad.AddColorStop (0, Xwt.Drawing.Colors.Black);
+			grad.AddColorStop (1, Xwt.Drawing.Colors.White);
+			using (var ib2 = new Xwt.Drawing.ImageBuilder (16, 16)) {
+				var ctx2 = ib2.Context;
+				ctx2.Pattern = grad;
+				ctx2.Rectangle (0, 0, 16, 16);
+				ctx2.Fill ();
+				using var bmp2 = ib2.ToBitmap ();
+				Check ("gradient-fill", bmp2.GetPixel (14, 8).Red > bmp2.GetPixel (1, 8).Red + 0.25);
+			}
+
+			// 10. Draw text into an offscreen image through the wave-1 path.
+			using (var ib3 = new Xwt.Drawing.ImageBuilder (24, 24)) {
+				var ctx3 = ib3.Context;
+				ctx3.SetColor (Xwt.Drawing.Colors.Blue);
+				ctx3.DrawTextLayout (layout, 1, 1);
+				using var bmp3 = ib3.ToBitmap ();
+				bool drewSomething = false;
+				for (int x = 0; x < 24 && !drewSomething; x++)
+					for (int y = 0; y < 24 && !drewSomething; y++)
+						drewSomething = bmp3.GetPixel (x, y).Blue > 0.3;
+				Check ("draw-text-into-image", drewSomething);
+			}
+
 			Console.WriteLine ($"[smoke] ok {pass}/{total}");
 			return pass == total ? 0 : 1;
 		}

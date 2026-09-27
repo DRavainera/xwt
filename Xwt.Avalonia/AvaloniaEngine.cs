@@ -62,11 +62,23 @@ namespace Xwt.AvaloniaBackend
 			RegisterBackend<ITextEntryBackend, TextEntryBackend> ();
 			RegisterBackend<ICanvasBackend, CanvasBackend> ();
 
+			// Wave 1 (drawing): the Context/Font/TextLayout/Gradient/Image
+			// handlers the Canvas custom draw and the dialogs need. They map
+			// Xwt.Drawing to Avalonia.Media + SkiaSharp — the exact stack the
+			// MonoDevelop Avalonia shell already proves (SkTextEditor). The
+			// Toolkit creates these handlers from the registration table at
+			// Toolkit.Initialize, so they MUST be registered here.
+			RegisterBackend<ContextBackendHandler, ContextBackend> ();
+			RegisterBackend<DrawingPathBackendHandler, ContextBackend> ();
+			RegisterBackend<FontBackendHandler, FontBackend> ();
+			RegisterBackend<TextLayoutBackendHandler, TextLayoutBackend> ();
+			RegisterBackend<GradientBackendHandler, GradientBackend> ();
+			RegisterBackend<ImagePatternBackendHandler, ImagePatternBackend> ();
+			RegisterBackend<ImageBuilderBackendHandler, ImageBuilderBackend> ();
+			RegisterBackend<ImageBackendHandler, AvaloniaImageBackend> ();
+
 			// NEXT WAVES (following the Xwt.Gtk registration list, in the
 			// order the MonoDevelop port needs them):
-			//   1. Image/Context/Font/TextLayout/Gradient backend handlers
-			//      (map to Avalonia.Media + SkiaSharp — the shell already
-			//      proves that stack); Canvas custom draw needs them.
 			//   2. ScrollView/Scrollbar, CheckBox/RadioButton/ToggleButton,
 			//      Frame/Separator, ImageView.
 			//   3. TreeView/ListView + stores (the Pads), ComboBox.

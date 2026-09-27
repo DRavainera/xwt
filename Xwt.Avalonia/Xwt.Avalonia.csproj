@@ -22,6 +22,9 @@
          this project must not try to resolve it. -->
     <PackageReference Include="Avalonia" Version="12.1.2" Condition="'$(TargetFramework)' == 'net10.0'" />
     <PackageReference Include="Avalonia.Desktop" Version="12.1.2" Condition="'$(TargetFramework)' == 'net10.0'" />
+    <!-- Wave-1 drawing handlers raster through SkiaSharp (same stack as the
+         MonoDevelop Avalonia shell; Avalonia.Skia pins a compatible version). -->
+    <PackageReference Include="SkiaSharp" Version="3.119.4" Condition="'$(TargetFramework)' == 'net10.0'" />
   </ItemGroup>
 
 </Project>

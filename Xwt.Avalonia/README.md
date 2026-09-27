@@ -1,8 +1,7 @@
 # Xwt.Avalonia — backend Avalonia para Xwt (reemplazo de Xwt.Gtk)
 
 `Xwt.Avalonia` mapea el MISMO modelo de objetos del frontend Xwt a controles
-Avalonia, igual que `Xwt.Gtk` lo mapea a Gtk# (legacy que se retira tras la
-rama 9.x) y `Xwt.WPF` a WPF. Vive DENTRO del submódulo `external/xwt`, junto
+Avalonia, igual que `Xwt.Gtk` lo mapea a Gtk# (legacy que se retirará proximamente) y `Xwt.WPF` a WPF. Vive DENTRO del submódulo `external/xwt`, junto
 a los otros backends — no es una reconstrucción paralela de la aplicación.
 
 ## Uso
@@ -19,8 +18,8 @@ Xwt.Application.Initialize (new AvaloniaEngine ());
 
 | Proyecto | Target | Contenido |
 |---|---|---|
-| `Xwt.Avalonia/` | net10.0 | Engine + backends de la primera oleada |
-| `Xwt.Avalonia.Smoke/` | net10.0 | Humo headless determinista (9 aserciones, exit 0/1) |
+| `Xwt.Avalonia/` | net10.0 | Engine + backends de las oleadas 0 y 1 |
+| `Xwt.Avalonia.Smoke/` | net10.0 | Humo headless determinista (14 aserciones, exit 0/1) |
 
 El núcleo `Xwt/Xwt.csproj` es multi-target `net40;net10.0`: en net10 los 3
 tipos de `System.Xaml` que usa el frontend (`ContentPropertyAttribute`,
@@ -39,7 +38,7 @@ build net40 queda intacto.
 | `ButtonBackend` | `Button` | Rutea `Clicked` al `IButtonEventSink` vía `ApplicationContext.InvokeUserCode` |
 | `BoxBackend` | `Canvas` (contenedor fijo) | El frontend `Box` calcula packing/orientación/spacing y entrega los rects en `SetAllocation` — mismo contrato que el `CustomContainer` del backend GTK |
 | `TextEntryBackend` | `TextBox` | Text/Changed/Activated (Enter)/selección/caret |
-| `CanvasBackend` | `Canvas` | Children con bounds (el dibujo custom espera a los handlers de la oleada 1) |
+| `CanvasBackend` | `Grid` { host de render + overlay `Canvas` } | El host (`Control` con `Render` override) rasteriza cada frame a un `WriteableBitmap` (Bgra8888, patrón `SkTextEditor` del shell) y el sink `ICanvasEventSink.OnDraw` recibe un `SkDrawContext` (pila estilo Cairo sobre SKCanvas+SKPath); el overlay `Canvas` aloja los children con bounds |
 
 `AvaloniaEngine` además resuelve el ciclo de aplicación (guest/standalone),
 threading (`InvokeAsync`, timers, `DispatchPendingEvents` sobre
@@ -47,13 +46,20 @@ threading (`InvokeAsync`, timers, `DispatchPendingEvents` sobre
 `GetBackendForWindow`, `GetNativeWindow`, parent window vía
 `TopLevel.GetTopLevel`).
 
+## Oleada 1 — dibujo (`DrawingBackends.cs`, sobre Avalonia.Media + SkiaSharp)
+
+| Handler | Handle | Notas |
+|---|---|---|
+| `ContextBackend` | `SkDrawContext` | Pila estilo Cairo (SKCanvas + SKPath compartido + stack de `DrawState`): Save/Restore/Clip±Preserve, Fill/Stroke±Preserve, SetColor/LineWidth/LineDash, **SetPattern** (shader de gradiente o bitmap repeat — resuelve el Pattern del FRONTEND con `GetSafeBackend`, igual que Xwt.WPF), transformaciones, arcos/curvas/rects (también relativos), IsPointInStroke/InFill, CreatePath/CopyPath/AppendPath |
+| `FontBackend` | `FontData` | Cache de `SKTypeface` por familia/estilo; **defaults runtime**: `SKTypeface.Default.FamilyName` puede ser vacío con el font manager fontconfig de SkiaSharp 3.119 (familia sin resolver ⇒ métricas cero), así que `FontCache.DefaultFamily()` elige una sans real instalada (DejaVu Sans → Liberation Sans → …) o la primera familia no vacía; mono/serif idem con candidatos conocidos; `RegisterFontFromFile` vía `SKFontManager.CreateTypeface` |
+| `TextLayoutBackend` | `AvaloniaTextLayout` | Blob POR RUN (colores por `ColorTextAttribute`), `SKTextBlobBuilder.AddRun` + `SKCanvas.DrawTextBlob`, ellipsize WordElipsis, alineación, GetSize/IndexFromCoordinates/CoordinateFromIndex/Baseline/Meanline |
+| `GradientBackend` / `ImagePatternBackend` | `GradientData` / `SKBitmap` | Lineal/radial con stops; el patrón de imagen es el bitmap del image backend |
+| `ImageBuilderBackend` | `AvaloniaImageBuilder` | SKSurface offscreen + SKBitmap; `CreateContext` entrega un `SkDrawContext` sobre ese canvas |
+| `AvaloniaImageBackend` | `AvaloniaImageData` | Load/Save (SKCodec/encode), Copy/Crop/Area, Set/GetBitmapPixel, MultiResolution; **`ConvertToBitmap` de custom-drawn**: rasteriza REPLAYANDO el callback con `idesc.Size` (los VectorImage no tienen tamaño intrínseco en el backend) — y con **`Alpha = 1`** (el default de `ImageDescription.Alpha` es 0 y anula todo el dibujo); `GetStockIcon` queda para la oleada 4 |
+
 ## Oleadas siguientes (en el orden que pide el port de MonoDevelop)
 
-1. Handlers de dibujo: `ImageBackendHandler`, `ContextBackendHandler`,
-   `TextLayoutBackendHandler`, `FontBackendHandler`,
-   `GradientBackendHandler`, `DrawingPathBackendHandler` → Avalonia.Media +
-   SkiaSharp (el shell Avalonia ya usa esa pila).
-2. `IScrollViewBackend`, `ICheckBoxBackend`, `IRadioButtonBackend`,
+1. `IScrollViewBackend`, `ICheckBoxBackend`, `IRadioButtonBackend`,
    `IToggleButtonBackend`, `IFrameBackend`, `ISeparatorBackend`,
    `IImageViewBackend`.
 3. `ITreeViewBackend`/`ITreeStoreBackend`, `IListViewBackend`/
@@ -68,16 +74,18 @@ threading (`InvokeAsync`, timers, `DispatchPendingEvents` sobre
 
 ```bash
 cd Xwt.Avalonia.Smoke && dotnet run
-# [smoke] ok 9/9  (exit 0)
+# [smoke] ok 14/14  (exit 0)
 ```
 
 Cubre: inicialización por nombre de backend, Label/Button/Entry/Box →
 controles nativos correctos, composición de hijos del Box, ventana con
-contenido, evento Clicked de vuelta al frontend y round-trip de texto del
-entry. Nota: en equipos con fuentes de usuario WOFF/WOFF2 hay que arrancar
-con el workaround `FONTCONFIG_FILE` documentado en
-`docs/interfaz-plan.md` §M16e/M16f (mismo bucle de SkFontMgr_fontconfig que
-en el shell).
+contenido, evento Clicked de vuelta al frontend, round-trip de texto del
+entry y las 5 rutas de dibujo de la oleada 1 (raster de un `ImageBuilder` +
+lectura de píxel, tamaño/index de `TextLayout`, fill con gradiente y texto
+dibujado dentro de una imagen). Nota: en equipos con fuentes de usuario
+WOFF/WOFF2 hay que arrancar con el workaround `FONTCONFIG_FILE` documentado
+en `docs/interfaz-plan.md` §M16e/M16f/M16g (mismo bucle de
+SkFontMgr_fontconfig que en el shell).
 
 ## Notas de API (Avalonia 12)
 
