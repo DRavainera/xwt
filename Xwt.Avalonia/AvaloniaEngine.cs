@@ -77,11 +77,21 @@ namespace Xwt.AvaloniaBackend
 			RegisterBackend<ImageBuilderBackendHandler, ImageBuilderBackend> ();
 			RegisterBackend<ImageBackendHandler, AvaloniaImageBackend> ();
 
+			// Wave 3 (lists): the Pads widgets, plus the store backends the
+			// core requires (ListStore has no fallback; its rows and the tree
+			// nodes are the TreePositions the selection APIs address).
+			RegisterBackend<IListViewBackend, ListViewBackend> ();
+			RegisterBackend<IListBoxBackend, ListViewBackend> ();
+			RegisterBackend<ITreeViewBackend, TreeViewBackend> ();
+			RegisterBackend<IComboBoxBackend, ComboBoxBackend> ();
+			RegisterBackend<IListStoreBackend, ListStoreBackend> ();
+			RegisterBackend<ITreeStoreBackend, TreeStoreBackend> ();
+
 			// NEXT WAVES (following the Xwt.Gtk registration list, in the
 			// order the MonoDevelop port needs them):
 			//   2. ScrollView/Scrollbar, CheckBox/RadioButton/ToggleButton,
 			//      Frame/Separator, ImageView.
-			//   3. TreeView/ListView + stores (the Pads), ComboBox.
+			//   4. Menus, Dialogs/AlertDialogs, file choosers, Clipboard,
 			//   4. Menu/MenuItem family, Dialog/AlertDialog, file choosers,
 			//      Clipboard, StatusBar, Notebook, Paned.
 			//   5. ICustomWidgetBackend guest hosting + platform services.

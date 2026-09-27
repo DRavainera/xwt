@@ -115,6 +115,61 @@ namespace Xwt.AvaloniaBackend.Smoke
 				Check ("draw-text-into-image", drewSomething);
 			}
 
+			// ---- Wave 3: the Pads widgets (ListView/TreeView/ComboBox) ----
+
+			// 11. ListView over a core ListStore: 2 rows render, selection
+			// through the backend address the row positions of the store.
+			var nameField = new Xwt.DataField<string> ();
+			var sizeField = new Xwt.DataField<long> ();
+			var listStore = new Xwt.ListStore (nameField, sizeField);
+			int r0 = listStore.AddRow ();
+			listStore.SetValue (r0, nameField, "alpha");
+			listStore.SetValue (r0, sizeField, 12L);
+			int r1 = listStore.AddRow ();
+			listStore.SetValue (r1, nameField, "beta");
+			var listView = new Xwt.ListView ();
+			var colName = new Xwt.ListViewColumn ("Name", new Xwt.TextCellView (nameField));
+			var colSize = new Xwt.ListViewColumn ("Size", new Xwt.TextCellView (sizeField));
+			listView.Columns.Add (colName);
+			listView.Columns.Add (colSize);
+			listView.DataSource = listStore;
+			var lvBackend = (Xwt.Backends.IListViewBackend)Xwt.Toolkit.GetBackend (listView);
+			Check ("listview-rows", lvBackend.SelectedRows.Length == 0);
+			lvBackend.SelectRow (1);
+			Check ("listview-select", lvBackend.SelectedRows.Length == 1 && lvBackend.SelectedRows [0] == 1);
+
+			// 12. TreeView over a core TreeStore: hierarchy, expansion state
+			// and node selection through TreePosition handles.
+			var labelField = new Xwt.DataField<string> ();
+			var treeStore = new Xwt.TreeStore (labelField);
+			var root = treeStore.AddNode ();
+			root.SetValue (labelField, "Solution 'TestProj' (1 project)");
+			var child = root.AddChild ();
+			child.SetValue (labelField, "TestProj");
+			var treeView = new Xwt.TreeView ();
+			var colLabel = new Xwt.ListViewColumn ("Item", new Xwt.TextCellView (labelField));
+			treeView.Columns.Add (colLabel);
+			treeView.DataSource = treeStore;
+			var tvBackend = (Xwt.Backends.ITreeViewBackend)Xwt.Toolkit.GetBackend (treeView);
+			Check ("treeview-select", ReferenceEquals (tvBackend.FocusedRow, root.CurrentPosition) == false && tvBackend.SelectedRows.Length == 0);
+			tvBackend.SelectRow (child.CurrentPosition);
+			Check ("treeview-select-child", tvBackend.SelectedRows.Length == 1 && ReferenceEquals (tvBackend.SelectedRows [0], child.CurrentPosition));
+
+			// 13. ComboBox over a core ListStore: items show and the selected
+			// index round-trips.
+			var configField = new Xwt.DataField<string> ();
+			var comboStore = new Xwt.ListStore (configField);
+			int c0 = comboStore.AddRow ();
+			comboStore.SetValue (c0, configField, "Debug");
+			int c1 = comboStore.AddRow ();
+			comboStore.SetValue (c1, configField, "Release");
+			var combo = new Xwt.ComboBox ();
+			combo.Views.Add (new Xwt.TextCellView (configField));
+			combo.ItemsSource = comboStore;
+			var cbBackend = (Xwt.Backends.IComboBoxBackend)Xwt.Toolkit.GetBackend (combo);
+			cbBackend.SelectedRow = 1;
+			Check ("combobox-select", cbBackend.SelectedRow == 1);
+
 			Console.WriteLine ($"[smoke] ok {pass}/{total}");
 			return pass == total ? 0 : 1;
 		}

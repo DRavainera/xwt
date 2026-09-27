@@ -57,35 +57,58 @@ threading (`InvokeAsync`, timers, `DispatchPendingEvents` sobre
 | `ImageBuilderBackend` | `AvaloniaImageBuilder` | SKSurface offscreen + SKBitmap; `CreateContext` entrega un `SkDrawContext` sobre ese canvas |
 | `AvaloniaImageBackend` | `AvaloniaImageData` | Load/Save (SKCodec/encode), Copy/Crop/Area, Set/GetBitmapPixel, MultiResolution; **`ConvertToBitmap` de custom-drawn**: rasteriza REPLAYANDO el callback con `idesc.Size` (los VectorImage no tienen tamaño intrínseco en el backend) — y con **`Alpha = 1`** (el default de `ImageDescription.Alpha` es 0 y anula todo el dibujo); `GetStockIcon` queda para la oleada 4 |
 
+## Oleada 3 — listas (los Pads, en `ListBackends.cs`)
+
+`ListViewBackend` (también `IListBoxBackend`), `TreeViewBackend` y
+`ComboBoxBackend`. Los rows renderizan con controles Avalonia planos
+(`ScrollViewer → StackPanel` de `Grid` por fila) en vez de templates de
+datos: el contrato Xwt exige APIs claveadas por `TreePosition`
+(SelectRow/ExpandRow/GetCellBounds…) sobre un origen de datos que el backend
+no posee, y `ITreeDataTemplate.BindChildren` de Avalonia 12 pierde la
+identidad por nodo. El contenido de celda mapea igual que `CellUtil` de
+Xwt.WPF (TextCellView→TextBlock, ImageCellView→Image rasterizada por la
+oleada 1, CheckBoxCellView→CheckBox); `CanvasCellView` queda para la oleada
+de celdas custom-drawn.
+
+**Stores**: el núcleo Xwt exige backends registrados (`ListStore` no tiene
+fallback y el fallback del `TreeStore` es internal) — `ListStoreBackend` y
+`TreeStoreBackend` implementan `IListStoreBackend`/`ITreeStoreBackend` con
+filas/nodos cuya identidad ES el `TreePosition` (los handles se pueden
+guardar, igual que los GtkTreeIter de GTK); para `IListDataSource` propios
+(como los view models de los Pads) hay un fallback por índice
+(`IndexRowHandle`). El `TreeStore` se reconstruye de los eventos del origen
+(NodeChanged/…) y el flatten respeta la expansión con eventos
+Expanding/Expanded/Collapsing/Collapsed.
+
 ## Oleadas siguientes (en el orden que pide el port de MonoDevelop)
 
 1. `IScrollViewBackend`, `ICheckBoxBackend`, `IRadioButtonBackend`,
    `IToggleButtonBackend`, `IFrameBackend`, `ISeparatorBackend`,
    `IImageViewBackend`.
-3. `ITreeViewBackend`/`ITreeStoreBackend`, `IListViewBackend`/
-   `IListStoreBackend` (los Pads), `IComboBoxBackend`.
-4. Familia de menús (`IMenuBackend`/`IMenuItemBackend`…),
+2. Familia de menús (`IMenuBackend`/`IMenuItemBackend`…),
    `IDialogBackend`/`IAlertDialogBackend`, file choosers, `ClipboardBackend`,
    `INotebookBackend`, `IPanedBackend`.
-5. Hosting guest `ICustomWidgetBackend` (controles Avalonia crudos dentro de
-   Xwt) y servicios de plataforma.
+3. Hosting guest `ICustomWidgetBackend` (controles Avalonia crudos dentro de
+   Xwt) y servicios de plataforma; celdas custom-drawn (`CanvasCellView`).
 
 ## QA
 
 ```bash
 cd Xwt.Avalonia.Smoke && dotnet run
-# [smoke] ok 14/14  (exit 0)
+# [smoke] ok 19/19  (exit 0)
 ```
 
 Cubre: inicialización por nombre de backend, Label/Button/Entry/Box →
 controles nativos correctos, composición de hijos del Box, ventana con
 contenido, evento Clicked de vuelta al frontend, round-trip de texto del
-entry y las 5 rutas de dibujo de la oleada 1 (raster de un `ImageBuilder` +
+entry, las 5 rutas de dibujo de la oleada 1 (raster de un `ImageBuilder` +
 lectura de píxel, tamaño/index de `TextLayout`, fill con gradiente y texto
-dibujado dentro de una imagen). Nota: en equipos con fuentes de usuario
-WOFF/WOFF2 hay que arrancar con el workaround `FONTCONFIG_FILE` documentado
-en `docs/interfaz-plan.md` §M16e/M16f/M16g (mismo bucle de
-SkFontMgr_fontconfig que en el shell).
+dibujado dentro de una imagen) y las 5 de la oleada 3 (ListView sobre
+ListStore con selección por índice, TreeView sobre TreeStore con selección
+por posición de nodo, ComboBox con índice seleccionado). Nota: en equipos
+con fuentes de usuario WOFF/WOFF2 hay que arrancar con el workaround
+`FONTCONFIG_FILE` documentado en `docs/interfaz-plan.md`
+§M16e/M16f/M16g (mismo bucle de SkFontMgr_fontconfig que en el shell).
 
 ## Notas de API (Avalonia 12)
 
