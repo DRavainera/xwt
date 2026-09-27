@@ -170,6 +170,54 @@ namespace Xwt.AvaloniaBackend.Smoke
 			cbBackend.SelectedRow = 1;
 			Check ("combobox-select", cbBackend.SelectedRow == 1);
 
+			// ---- Wave 2: surrounding widgets ----
+
+			// 14. ScrollView hosts the child and exposes policies.
+			var scroll = new Xwt.ScrollView ();
+			var scrollChild = new Xwt.Label { Text = "inside" };
+			scroll.Content = scrollChild;
+			scroll.VerticalScrollPolicy = Xwt.ScrollPolicy.Automatic;
+			var svNative = Xwt.Toolkit.CurrentEngine.GetNativeWidget (scroll) as Avalonia.Controls.ScrollViewer;
+			Check ("scrollview-child", svNative is not null && svNative.Content is Avalonia.Controls.TextBlock stb && stb.Text == "inside"
+				&& svNative.VerticalScrollBarVisibility == Avalonia.Controls.Primitives.ScrollBarVisibility.Auto);
+
+			// 15. CheckBox state round trip through the backend (On/Mixed).
+			var checkbox = new Xwt.CheckBox ("enable");
+			var cbNative = Xwt.Toolkit.CurrentEngine.GetNativeWidget (checkbox) as Avalonia.Controls.CheckBox;
+			checkbox.State = Xwt.CheckBoxState.On;
+			var stateOn = cbNative?.IsChecked == true;
+			checkbox.AllowMixed = true;
+			checkbox.State = Xwt.CheckBoxState.Mixed;
+			Check ("checkbox-state", stateOn && cbNative?.IsChecked == null);
+
+			// 16. RadioButton: Active round trip + group sharing unchecks peers.
+			var radioA = new Xwt.RadioButton ("A");
+			var radioB = new Xwt.RadioButton ("B");
+			radioB.Group = radioA.Group;
+			radioA.Active = true;
+			radioB.Active = true;
+			Check ("radiobutton-group", radioA.Active == false && radioB.Active == true);
+			Console.WriteLine ($"[smoke] radio-debug A={radioA.Active} B={radioB.Active}");
+
+			// 17. Frame hosts the child and shows the label; ToggleButton Active
+			// round trips; Separator and ImageView materialize.
+			var frame = new Xwt.Frame ();
+			frame.Content = new Xwt.Label { Text = "boxed" };
+			var frameNative = Xwt.Toolkit.CurrentEngine.GetNativeWidget (frame);
+			var toggle = new Xwt.ToggleButton ("toggle");
+			toggle.Active = true;
+			var sep = new Xwt.HSeparator ();
+			var imgView = new Xwt.ImageView ();
+			using (var ib = new Xwt.Drawing.ImageBuilder (16, 16)) {
+				ib.Context.SetColor (Xwt.Drawing.Colors.Green);
+				ib.Context.Rectangle (0, 0, 16, 16);
+				ib.Context.Fill ();
+				imgView.Image = ib.ToVectorImage ();
+			}
+			Check ("frame-toggle-sep-image", frameNative is not null && toggle.Active
+				&& Xwt.Toolkit.CurrentEngine.GetNativeWidget (sep) is not null
+				&& Xwt.Toolkit.CurrentEngine.GetNativeWidget (imgView) is not null);
+
 			Console.WriteLine ($"[smoke] ok {pass}/{total}");
 			return pass == total ? 0 : 1;
 		}

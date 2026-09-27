@@ -84,6 +84,16 @@ namespace Xwt.AvaloniaBackend
 			RegisterBackend<IListBoxBackend, ListViewBackend> ();
 			RegisterBackend<ITreeViewBackend, TreeViewBackend> ();
 			RegisterBackend<IComboBoxBackend, ComboBoxBackend> ();
+
+			// Wave 2 (surrounding widgets): scroll containers, the button
+			// family with state, framed containers, dividers and image views.
+			RegisterBackend<IScrollViewBackend, ScrollViewBackend> ();
+			RegisterBackend<ICheckBoxBackend, CheckBoxBackend> ();
+			RegisterBackend<IRadioButtonBackend, RadioButtonBackend> ();
+			RegisterBackend<IToggleButtonBackend, ToggleButtonBackend> ();
+			RegisterBackend<IFrameBackend, FrameBackend> ();
+			RegisterBackend<ISeparatorBackend, SeparatorBackend> ();
+			RegisterBackend<IImageViewBackend, ImageViewBackend> ();
 			RegisterBackend<IListStoreBackend, ListStoreBackend> ();
 			RegisterBackend<ITreeStoreBackend, TreeStoreBackend> ();
 
