@@ -87,6 +87,12 @@ namespace Xwt.AvaloniaBackend
 			RegisterBackend<IListStoreBackend, ListStoreBackend> ();
 			RegisterBackend<ITreeStoreBackend, TreeStoreBackend> ();
 
+			// Dialogs: the Xwt.Dialog family (NewFolderDialog, run
+			// configuration dialogs, the wizard family…) — an Avalonia Window
+			// with the Xwt button bar and the RunLoop/EndLoop modal pump.
+			RegisterBackend<IDialogBackend, DialogBackend> ();
+			RegisterBackend<global::Xwt.Backends.DesktopBackend, AvaloniaDesktopBackend> ();
+
 			// NEXT WAVES (following the Xwt.Gtk registration list, in the
 			// order the MonoDevelop port needs them):
 			//   2. ScrollView/Scrollbar, CheckBox/RadioButton/ToggleButton,
