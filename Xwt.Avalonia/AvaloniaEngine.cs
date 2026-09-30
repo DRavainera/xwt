@@ -101,6 +101,7 @@ namespace Xwt.AvaloniaBackend
 			// configuration dialogs, the wizard family…) — an Avalonia Window
 			// with the Xwt button bar and the RunLoop/EndLoop modal pump.
 			RegisterBackend<IDialogBackend, DialogBackend> ();
+			RegisterBackend<IPopupWindowBackend, PopupWindowBackend> ();
 			RegisterBackend<global::Xwt.Backends.DesktopBackend, AvaloniaDesktopBackend> ();
 
 			// NEXT WAVES (following the Xwt.Gtk registration list, in the

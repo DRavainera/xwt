@@ -434,6 +434,16 @@ namespace Xwt.AvaloniaBackend
 			return -1;
 		}
 
+		/// <summary>Y offset of a row inside the widget (top coordinate of the
+		/// row), for event args raised from row indices.</summary>
+		protected double RowOffset (int index)
+		{
+			double acc = 0;
+			for (int i = 0; i < index && i < Host.Rows.Count; i++)
+				acc += Host.RowHeight (i);
+			return acc;
+		}
+
 		void HandleRowClick (object sender, Avalonia.Input.PointerPressedEventArgs e)
 		{
 			var p = e.GetPosition (Host.Panel);
@@ -681,11 +691,48 @@ namespace Xwt.AvaloniaBackend
 
 		protected ITreeViewEventSink TreeSink => EventSink as ITreeViewEventSink;
 
+		/// <summary>Y offset of a row inside the widget (top coordinate of the
+		/// row), for event args raised from row indices.</summary>
+		protected double RowOffset (int index)
+		{
+			double acc = 0;
+			for (int i = 0; i < index && i < Host.Rows.Count; i++)
+				acc += Host.RowHeight (i);
+			return acc;
+		}
+
 		void HandleRowClick (object sender, Avalonia.Input.PointerPressedEventArgs e)
 		{
 			var p = e.GetPosition (Host.Panel);
 			int row = RowAtPosition (p.X, p.Y);
 			Host.CurrentEventRow = row;
+			var props = e.GetCurrentPoint (Host.Panel).Properties;
+			// Right click: select the row under the pointer (legacy pads select
+			// before showing the context menu) and raise ButtonPressed with the
+			// context-menu flag — no selection change beyond that.
+			if (props.IsRightButtonPressed) {
+				if (row < 0)
+					return;
+				var posR = Host.Rows [row].Position;
+				focused = posR;
+				if (!Selected.Any (s => ReferenceEquals (s, posR))) {
+					Selected.Clear ();
+					Selected.Add (posR);
+					ApplySelectionVisuals ();
+					if (TableSink != null)
+						InvokeUser (TableSink.OnSelectionChanged);
+				}
+				InvokeUser (() => {
+					var args = new ButtonEventArgs {
+						Button = PointerButton.Right,
+						X = p.X,
+						Y = p.Y + RowOffset (row),
+						IsContextMenuTrigger = true,
+					};
+					EventSink.OnButtonPressed (args);
+				});
+				return;
+			}
 			if (row < 0)
 				return;
 			var presenter = Host.Rows [row];
@@ -835,11 +882,23 @@ namespace Xwt.AvaloniaBackend
 
 		public TreePosition[] SelectedRows => Selected.ToArray ();
 
+		/// <summary>The data source of the store backing this tree — lets callers
+		/// resolve a TreePosition back to its values (tag lookups in the shell).</summary>
+		public ITreeDataSource TreeSource => treeSource;
+
 		public void SelectRow (TreePosition pos)
 		{
+			// Single mode REPLACES the selection (gtk_tree_selection_select_path);
+			// Multiple adds.
+			if (selectionMode != SelectionMode.Multiple)
+				Selected.Clear ();
 			if (!Selected.Any (s => ReferenceEquals (s, pos)))
 				Selected.Add (pos);
 			ApplySelectionVisuals ();
+			// Programmatic selection drives the same sink event a user click does
+			// (the Gtk backend raises "changed" on gtk_tree_selection_select_path too).
+			if (TableSink != null)
+				InvokeUser (TableSink.OnSelectionChanged);
 		}
 
 		public void UnselectRow (TreePosition pos)
