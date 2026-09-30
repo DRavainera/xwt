@@ -642,6 +642,7 @@ namespace Xwt.AvaloniaBackend
 	{
 		ITreeDataSource treeSource;
 		readonly HashSet<TreePosition> expanded = new ();
+		readonly HashSet<TreePosition> collapsed = new (); // default-expanded semantics
 		readonly List<(ListViewColumn Column, object Handle)> columns = new ();
 		TreePosition focused;
 		bool headersVisible = true;
@@ -707,17 +708,17 @@ namespace Xwt.AvaloniaBackend
 
 		void ToggleExpansion (TreePosition pos)
 		{
-			if (!expanded.Contains (pos)) {
+			if (collapsed.Contains (pos)) {
 				if (TreeSink != null)
 					InvokeUser (() => TreeSink.OnRowExpanding (pos));
-				expanded.Add (pos);
+				collapsed.Remove (pos);
 				Rebuild ();
 				if (TreeSink != null)
 					InvokeUser (() => TreeSink.OnRowExpanded (pos));
 			} else {
 				if (TreeSink != null)
 					InvokeUser (() => TreeSink.OnRowCollapsing (pos));
-				expanded.Remove (pos);
+				collapsed.Add (pos);
 				Rebuild ();
 				if (TreeSink != null)
 					InvokeUser (() => TreeSink.OnRowCollapsed (pos));
@@ -782,7 +783,7 @@ namespace Xwt.AvaloniaBackend
 					if (child == null)
 						continue;
 					bool hasKids = treeSource.GetChildrenCount (child) > 0;
-					bool isOpen = expanded.Contains (child);
+					bool isOpen = !collapsed.Contains (child); // default-expanded tree (Solution pad)
 					specs.Add (new RowSpec { Position = child, Depth = depth, HasExpander = hasKids, IsExpanded = isOpen });
 					if (isOpen)
 						Walk (child, depth + 1);
@@ -858,13 +859,13 @@ namespace Xwt.AvaloniaBackend
 
 		public bool IsRowSelected (TreePosition pos) => Selected.Any (s => ReferenceEquals (s, pos));
 
-		public bool IsRowExpanded (TreePosition pos) => expanded.Contains (pos);
+		public bool IsRowExpanded (TreePosition pos) => !collapsed.Contains (pos);
 
 		public void ExpandRow (TreePosition pos, bool expandChildren)
 		{
 			if (pos == null)
 				return;
-			expanded.Add (pos);
+			collapsed.Remove (pos); // default-expanded: expanding = ensure not collapsed
 			if (expandChildren && treeSource != null) {
 				int count = treeSource.GetChildrenCount (pos);
 				for (int i = 0; i < count; i++)
