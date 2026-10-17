@@ -112,14 +112,16 @@ namespace Xwt.AvaloniaBackend
 			=> cb.IsChecked = checkbox.Active;
 
 		/// <summary>Rasterizes a Xwt image with the wave-1 image backend (the
-		/// custom-drawn/vector images replay at their declared size).</summary>
+		/// custom-drawn/vector images replay at the requested size — a ThemedImage
+		/// from FromFile has no declared backend size, so without it the replay
+		/// would collapse to the 1x1 fallback).</summary>
 		public static Avalonia.Media.IImage ImageToSource (Xwt.Drawing.Image image)
 		{
 			if (image == null)
 				return null;
 			try {
 				var backend = Toolkit.GetBackend (image);
-				SKBitmap bmp = AvaloniaImageBackend.GetBitmap (backend);
+				SKBitmap bmp = AvaloniaImageBackend.GetBitmap (backend, image.Size);
 				if (bmp == null) {
 					// Vector/custom-drawn image: rasterize once at its declared
 					// size (the wave-1 ConvertToBitmap replay) and show that.

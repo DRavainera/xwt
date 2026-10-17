@@ -283,7 +283,7 @@ namespace Xwt.AvaloniaBackend
 			var dc = DC (backend);
 			if (img.IsNull || destRect.Width <= 0 || destRect.Height <= 0)
 				return;
-			var bitmap = AvaloniaImageBackend.GetBitmap (img.Backend);
+			var bitmap = AvaloniaImageBackend.GetBitmap (img.Backend, img.Size);
 			if (bitmap is null)
 				return;
 			dc.ApplyTransform ();
@@ -945,22 +945,26 @@ namespace Xwt.AvaloniaBackend
 		// resolves lazily (CurrentEngine is set once the toolkit loads).
 		static Toolkit T => Toolkit.CurrentEngine;
 		internal static SKBitmap GetBitmap (object backend)
+			=> GetBitmap (backend, Size.Zero);
+
+		internal static SKBitmap GetBitmap (object backend, Size size)
 		{
 			if (backend is not AvaloniaImageData d)
 				return null;
 			if (d.Bitmap is not null)
 				return d.Bitmap;
 			if (d.CustomDraw is not null) {
-				// Custom-drawn image: rasterize once at its declared size on
-				// first draw (MonoDevelop draws these at fixed sizes).
-				var size = GetSizeStatic (d);
-				int w = Math.Max (1, (int)Math.Ceiling (size.Width));
-				int h = Math.Max (1, (int)Math.Ceiling (size.Height));
-				d.Bitmap = RenderCustomDrawStatic (d, w, h);
+				// Custom-drawn images have no intrinsic bitmap size (a
+				// ThemedImage produced by FromFile has CustomWidth/Height == 0);
+				// rasterize at the size the frontend requested so fixed-size
+				// icons don't collapse to the 1x1 fallback.
+				int w = (int)Math.Ceiling (size.Width > 0 ? size.Width : d.CustomWidth);
+				int h = (int)Math.Ceiling (size.Height > 0 ? size.Height : d.CustomHeight);
+				d.Bitmap = RenderCustomDrawStatic (d, Math.Max (1, w), Math.Max (1, h));
 				return d.Bitmap;
 			}
 			if (d.MultiResolution is { Count: > 0 } list)
-				return GetBitmap (list [0]);
+				return GetBitmap (list [0], size);
 			return null;
 		}
 
