@@ -1,4 +1,6 @@
 <Project>
+  <Import Project="$(MSBuildThisFileDirectory)..\..\msbuild\LegacyReferenceAssemblies.targets" />
+
   <PropertyGroup Condition="'$(MSBuildProjectExtension)' == '.csproj' AND '$(UsingMicrosoftNETSdk)' != 'true' AND Exists('$(MSBuildProjectDirectory)\..\..\..\MonoDevelop.props')">
     <NoStdLib>false</NoStdLib>
   </PropertyGroup>

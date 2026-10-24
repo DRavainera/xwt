@@ -1,27 +1,28 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
   <PropertyGroup>
-    <TargetFrameworks>net40;net472</TargetFrameworks>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <TargetFrameworkVersion>v10.0</TargetFrameworkVersion>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>..\xwt.snk</AssemblyOriginatorKeyFile>
+    <PublicSign Condition="Exists('$(MSBuildThisFileDirectory)..\..\..\MonoDevelop.props')">true</PublicSign>
     <RootNamespace>Xwt.WPF</RootNamespace>
     <AssemblyName>Xwt.WPF</AssemblyName>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(TargetFramework)' == 'net40'">
-    <DefineConstants>DEBUG;NETFRAMEWORK;NET40</DefineConstants>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(TargetFramework)' == 'net472'">
-    <DefineConstants>DEBUG;NETFRAMEWORK;NET47</DefineConstants>
+    <LangVersion>6</LangVersion>
+    <!-- WFO1000: aviso de serialización design-time de un patrón legacy
+         (ColorDialogWithTitle.Title); solo afecta al diseñador, no al runtime. -->
+    <NoWarn>$(NoWarn);WFO1000</NoWarn>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugType>full</DebugType>
-    <LangVersion>6</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
     <DebugType>pdbonly</DebugType>
-    <LangVersion>6</LangVersion>
   </PropertyGroup>
   <PropertyGroup>
     <PackageId>Xwt.WPF</PackageId>
@@ -31,7 +32,7 @@
     <PackageProjectUrl>https://github.com/mono/xwt/</PackageProjectUrl>
     <PackageTags>xwt cross platform gui ui toolkit framework desktop wpf</PackageTags>
     <Description>Xwt is a cross-platform UI toolkit for creating desktop applications with .NET and Mono.
-        
+
 This package contains the WPF toolkit backend for Xwt based applications targeting WPF (Windows Presentation Foundation).</Description>
   </PropertyGroup>
   <ItemGroup>
@@ -57,22 +58,24 @@ This package contains the WPF toolkit backend for Xwt based applications targeti
     <ProjectReference Include="..\Xwt\Xwt.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="PresentationCore" />
-    <Reference Include="PresentationFramework" />
-    <Reference Include="PresentationFramework.Aero" />
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Drawing" />
-    <Reference Include="System.Windows.Forms" />
-    <Reference Include="System.Xaml" />
-    <Reference Include="System.Xml" />
-    <Reference Include="UIAutomationProvider" />
-    <Reference Include="UIAutomationTypes" />
-    <Reference Include="WindowsBase" />
-  </ItemGroup>
-  <ItemGroup>
     <Compile Remove="Xwt.WPFBackend.Utilities\MultiColumnTreeViewItem.cs" />
   </ItemGroup>
+  <!-- Antes de FindReferenceAssembliesForReferences: csc consume
+       @(ReferencePathWithRefAssemblies), una copia de @(ReferencePath) que ese
+       target genera; quitar los temas después de que corra no tiene efecto. -->
+  <Target Name="RemoveExtraWpfThemeAssemblies" BeforeTargets="FindReferenceAssembliesForReferences">
+    <!-- En WPF .NET 5+ todos los ensamblados de tema (Aero, Aero2, ...) se
+         referencian a la vez y duplican los tipos chrome (ButtonChrome,
+         CS0433). El Xwt legacy se compilaba solo contra Aero: se queda Aero
+         y se quitan el resto. Match por identidad: los items del pack vienen
+         con path completo, el Remove por nombre simple no matchea. -->
+    <ItemGroup>
+      <Reference Remove="@(Reference)"
+                 Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('%(Reference.Identity)', 'PresentationFramework\.(Aero2|AeroLite|Classic|Luna|Royale)\.dll'))" />
+      <ReferencePath Remove="@(ReferencePath)"
+                     Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('%(ReferencePath.Identity)', 'PresentationFramework\.(Aero2|AeroLite|Classic|Luna|Royale)\.dll'))" />
+    </ItemGroup>
+  </Target>
   <ItemGroup>
     <None Include="..\LICENSE.txt" Pack="true" PackagePath=""/>
     <None Include="..\README.markdown" Pack="true" PackagePath=""/>
