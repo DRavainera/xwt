@@ -1,7 +1,7 @@
 ﻿using System;
 using Xwt.Backends;
 
-#if NET47
+#if NET47 || NET10_0
 using System.Windows.Automation;
 using System.Windows.Automation.Peers;
 using System.Windows.Threading;
@@ -13,7 +13,7 @@ namespace Xwt.WPFBackend
 	{
 		public bool AccessibilityInUse {
 			get {
-#if NET47
+#if NET47 || NET10_0
 				// AutomationEvents.AutomationFocusChanged returns false sometimes when the application loses
 				// accessibility focus. So LiveRegionChanged plays fallback role here (it comes as true more reliable).
 				return AutomationPeer.ListenerExists (AutomationEvents.AutomationFocusChanged)
@@ -26,7 +26,7 @@ namespace Xwt.WPFBackend
 
 		public void MakeAnnouncement (string message, bool polite = false)
 		{
-#if NET47
+#if NET47 || NET10_0
 			string previousAccessibleLabel = Label;
 
 			var announcementResetTimer = new DispatcherTimer ();
