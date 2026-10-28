@@ -75,7 +75,7 @@ namespace Xwt.GtkBackend
 
 		public virtual Color LabelColor {
 			get {
-				return customLabelColor.HasValue ? customLabelColor.Value : Widget.Style.Foreground (Gtk.StateType.Normal).ToXwtValue ();
+				return customLabelColor.HasValue ? customLabelColor.Value : Widget.StyleContext.GetColor (Gtk.StateFlags.Normal).ToXwtValue ();
 			}
 			set {
 				customLabelColor = value;

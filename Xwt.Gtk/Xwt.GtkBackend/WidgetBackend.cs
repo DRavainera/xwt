@@ -347,7 +347,7 @@ namespace Xwt.GtkBackend
 		
 		public virtual object Font {
 			get {
-				return customFont ?? Widget.Style.FontDescription;
+				return customFont ?? Widget.PangoContext.FontDescription;
 			}
 			set {
 				var fd = (Pango.FontDescription) value;
@@ -360,7 +360,7 @@ namespace Xwt.GtkBackend
 		
 		public virtual Color BackgroundColor {
 			get {
-				return customBackgroundColor.HasValue ? customBackgroundColor.Value : Widget.Style.Background (Gtk.StateType.Normal).ToXwtValue ();
+				return customBackgroundColor.HasValue ? customBackgroundColor.Value : Widget.StyleContext.GetBackgroundColor (Gtk.StateFlags.Normal).ToXwtValue ();
 			}
 			set {
 				customBackgroundColor = value;

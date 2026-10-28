@@ -29,6 +29,7 @@
 using System;
 using Xwt.Backends;
 using Xwt.CairoBackend;
+#pragma warning disable 612, 618
 
 namespace Xwt.GtkBackend
 {
@@ -214,13 +215,13 @@ namespace Xwt.GtkBackend
 			ShowHideButtons ();
 		}
 
-		protected override void OnSizeRequested (ref Gtk.Requisition requisition)
+		protected override void OnGetPreferredHeight (out int minimum_height, out int natural_height)
 		{
 			if (HeightRequest != -1 && box.HeightRequest != HeightRequest)
 				box.HeightRequest = HeightRequest;
 			if (box.HeightRequest != -1 && HeightRequest == -1)
 				box.HeightRequest = -1;
-			base.OnSizeRequested (ref requisition);
+			base.OnGetPreferredHeight (out minimum_height, out natural_height);
 		}
 
 		Gtk.EventBox statusLabelEventBox;
@@ -337,7 +338,8 @@ namespace Xwt.GtkBackend
 
 		private void UpdateStyle ()
 		{
-			Gdk.Color color = entry.Style.Base (entry.State);
+			var rgba = entry.StyleContext.GetBackgroundColor (entry.StateFlags);
+			Gdk.Color color = new Gdk.Color ((byte) (rgba.Red * 65535), (byte) (rgba.Green * 65535), (byte) (rgba.Blue * 65535));
 			filter_button.ModifyBg (entry.State, color);
 			clear_button.ModifyBg (entry.State, color);
 			if (statusLabelEventBox != null)
@@ -423,47 +425,32 @@ namespace Xwt.GtkBackend
 			return base.OnKeyPressEvent (evnt);
 		}
 
-		protected override bool OnExposeEvent (Gdk.EventExpose evnt)
+		protected override bool OnDrawn (Cairo.Context cr)
 		{
 			var alloc = new Gdk.Rectangle (alignment.Allocation.X, box.Allocation.Y, alignment.Allocation.Width, box.Allocation.Height);
 
 			if (hasFrame && (!roundedShape || (roundedShape && !customRoundedShapeDrawing))) {
-				if (!Platform.IsWindows && !Platform.IsMac)
-					Gtk.Style.PaintFlatBox (Style, GdkWindow, entry.State, Gtk.ShadowType.None,
-										evnt.Area, this, "entry_bg", alloc.X + 2, alloc.Y + 2, alloc.Width - 4, alloc.Height - 4);
-				Gtk.Style.PaintShadow (entry.Style, GdkWindow, entry.State, entry.ShadowType,
-					evnt.Area, entry, "entry", alloc.X, alloc.Y, alloc.Width, alloc.Height);
-				/*				using (var ctx = Gdk.CairoHelper.Create (GdkWindow)) {
-					ctx.LineWidth = 1;
-					ctx.Rectangle (alloc.X + 0.5, alloc.Y + 0.5, alloc.Width - 1, alloc.Height - 1);
-					ctx.Color = new Cairo.Color (1,0,0);
-					ctx.Stroke ();
-				}*/
+				Gtk.Style.PaintShadowGap (entry.Style, cr, entry.State, entry.ShadowType,
+					entry, "entry", alloc.X, alloc.Y, alloc.Width, alloc.Height, Gtk.PositionType.Left, 0, 0);
 			}
 			else if (!roundedShape || !customRoundedShapeDrawing) {
-				using (var ctx = Gdk.CairoHelper.Create (GdkWindow)) {
-					ctx.RoundedRectangle (alloc.X + 0.5, alloc.Y + 0.5, alloc.Width - 1, alloc.Height - 1, 4);
-					ctx.SetSourceColor (entry.Style.Base (Gtk.StateType.Normal).ToCairoColor ());
-					ctx.Fill ();
-				}
+				cr.RoundedRectangle (alloc.X + 0.5, alloc.Y + 0.5, alloc.Width - 1, alloc.Height - 1, 4);
+				cr.SetSourceColor (entry.StyleContext.GetBackgroundColor (Gtk.StateFlags.Normal).ToCairoColor ());
+				cr.Fill ();
 			}
 			else {
-				using (var ctx = Gdk.CairoHelper.Create (GdkWindow)) {
-					RoundBorder (ctx, alloc.X + 0.5, alloc.Y + 0.5, alloc.Width - 1, alloc.Height - 1);
-					ctx.SetSourceColor (entry.Style.Base (Gtk.StateType.Normal).ToCairoColor ());
-					ctx.Fill ();
-				}
+				RoundBorder (cr, alloc.X + 0.5, alloc.Y + 0.5, alloc.Width - 1, alloc.Height - 1);
+				cr.SetSourceColor (entry.StyleContext.GetBackgroundColor (Gtk.StateFlags.Normal).ToCairoColor ());
+				cr.Fill ();
 			}
 
-			PropagateExpose (Child, evnt);
+			base.OnDrawn (cr);
 
 			if (hasFrame && roundedShape && customRoundedShapeDrawing) {
-				using (var ctx = Gdk.CairoHelper.Create (GdkWindow)) {
-					RoundBorder (ctx, alloc.X + 0.5, alloc.Y + 0.5, alloc.Width - 1, alloc.Height - 1);
-					ctx.SetSourceColor (Xwt.Drawing.Color.FromName ("#8c8c8c").ToCairoColor ());
-					ctx.LineWidth = 1;
-					ctx.Stroke ();
-				}
+				RoundBorder (cr, alloc.X + 0.5, alloc.Y + 0.5, alloc.Width - 1, alloc.Height - 1);
+				cr.SetSourceColor (Xwt.Drawing.Color.FromName ("#8c8c8c").ToCairoColor ());
+				cr.LineWidth = 1;
+				cr.Stroke ();
 			}
 			return true;
 		}
@@ -654,7 +641,7 @@ namespace Xwt.GtkBackend
 				get { return id; }
 			}
 
-			public string Label {
+			public new string Label {
 				get { return label; }
 			}
 			/*
@@ -680,7 +667,6 @@ namespace Xwt.GtkBackend
 		{
 			private SearchEntry parent;
 			private Pango.Layout layout;
-			private Gdk.GC text_gc;
 
 			public FramelessEntry (SearchEntry parent) : base()
 			{
@@ -695,22 +681,11 @@ namespace Xwt.GtkBackend
 
 			private void OnParentStyleSet (object o, EventArgs args)
 			{
-				RefreshGC ();
 				QueueDraw ();
-			}
-
-			private void RefreshGC ()
-			{
-				if (text_gc == null)
-					return;
-
-				text_gc.Dispose ();
-				text_gc = null;
 			}
 
 			protected override void OnDestroyed ()
 			{
-				RefreshGC();
 				if (layout != null) {
 					layout.Dispose ();
 					layout = null;
@@ -719,58 +694,20 @@ namespace Xwt.GtkBackend
 				base.OnDestroyed ();
 			}
 
-			public static Gdk.Color ColorBlend (Gdk.Color a, Gdk.Color b)
+			static Cairo.Color Blend (Gdk.RGBA a, Gdk.RGBA b)
 			{
-				// at some point, might be nice to allow any blend?
 				double blend = 0.5;
-
-				if (blend < 0.0 || blend > 1.0) {
-					throw new ApplicationException ("blend < 0.0 || blend > 1.0");
-				}
-
 				double blendRatio = 1.0 - blend;
-
-				int aR = a.Red >> 8;
-				int aG = a.Green >> 8;
-				int aB = a.Blue >> 8;
-
-				int bR = b.Red >> 8;
-				int bG = b.Green >> 8;
-				int bB = b.Blue >> 8;
-
-				double mR = aR + bR;
-				double mG = aG + bG;
-				double mB = aB + bB;
-
-				double blR = mR * blendRatio;
-				double blG = mG * blendRatio;
-				double blB = mB * blendRatio;
-
-				Gdk.Color color = new Gdk.Color ((byte)blR, (byte)blG, (byte)blB);
-				Gdk.Colormap.System.AllocColor (ref color, true, true);
-				return color;
+				return new Cairo.Color (
+					a.Red * blendRatio + b.Red * blend,
+					a.Green * blendRatio + b.Green * blend,
+					a.Blue * blendRatio + b.Blue * blend,
+					a.Alpha);
 			}
 
-			protected override bool OnExposeEvent (Gdk.EventExpose evnt)
+			protected override bool OnDrawn (Cairo.Context cr)
 			{
-				// The Entry's GdkWindow is the top level window onto which
-				// the frame is drawn; the actual text entry is drawn into a
-				// separate window, so we can ensure that for themes that don't
-				// respect HasFrame, we never ever allow the base frame drawing
-				// to happen
-				if (evnt.Window == GdkWindow) {
-					return true;
-				}
-
-				bool ret = base.OnExposeEvent (evnt);
-
-				if (text_gc == null) {
-					text_gc = new Gdk.GC (evnt.Window);
-					text_gc.Copy (Style.TextGC (Gtk.StateType.Normal));
-					Gdk.Color color_a = parent.Style.Base (Gtk.StateType.Normal);
-					Gdk.Color color_b = parent.Style.Text (Gtk.StateType.Normal);
-					text_gc.RgbFgColor = ColorBlend (color_a, color_b);
-				}
+				bool ret = base.OnDrawn (cr);
 
 				if (Text.Length > 0 || HasFocus || parent.EmptyMessage == null) {
 					return ret;
@@ -784,7 +721,10 @@ namespace Xwt.GtkBackend
 				int width, height;
 				layout.SetMarkup (parent.EmptyMessage);
 				layout.GetPixelSize (out width, out height);
-				evnt.Window.DrawLayout (text_gc, 2, (SizeRequest ().Height - height) / 2, layout);
+
+				cr.SetSourceColor (Blend (parent.StyleContext.GetBackgroundColor (parent.StateFlags), parent.StyleContext.GetColor (parent.StateFlags)));
+				cr.MoveTo (2, (SizeRequest ().Height - height) / 2.0);
+				Pango.CairoHelper.ShowLayout (cr, layout);
 
 				return ret;
 			}
@@ -890,16 +830,18 @@ namespace Xwt.GtkBackend
 			return base.OnButtonReleaseEvent(evnt);
 		}
 
-		protected override bool OnExposeEvent(Gdk.EventExpose evnt)
+		protected override bool OnDrawn(Cairo.Context cr)
 		{
-			base.OnExposeEvent(evnt);
+			bool ret = base.OnDrawn(cr);
 
 			if(HasFocus && draw_focus) {
-				Gtk.Style.PaintFocus(Style, GdkWindow, Gtk.StateType.Normal, evnt.Area, this, "button",
-					0, 0, Allocation.Width, Allocation.Height);
+				cr.Rectangle(0.5, 0.5, Allocation.Width - 1, Allocation.Height - 1);
+				cr.LineWidth = 1;
+				cr.SetSourceColor(new Cairo.Color(0.2, 0.4, 0.9));
+				cr.Stroke();
 			}
 
-			return true;
+			return ret;
 		}
 
 		private void UpdateImage()
@@ -930,4 +872,5 @@ namespace Xwt.GtkBackend
 		}
 	}
 }
+#pragma warning restore 612, 618
 

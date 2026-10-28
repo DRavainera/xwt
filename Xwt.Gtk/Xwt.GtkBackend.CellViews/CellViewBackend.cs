@@ -65,7 +65,7 @@ namespace Xwt.GtkBackend
 			protected set;
 		}
 
-		public TreeModel TreeModel { get; private set; }
+		public ITreeModel TreeModel { get; private set; }
 
 		public Gtk.TreeIter CurrentIter { get; private set; }
 
@@ -314,7 +314,7 @@ namespace Xwt.GtkBackend
 			});
 		}
 
-		public void LoadData (TreeModel model, Gtk.TreeIter iter)
+		public void LoadData (ITreeModel model, Gtk.TreeIter iter)
 		{
 			TreeModel = model;
 			CurrentIter = iter;

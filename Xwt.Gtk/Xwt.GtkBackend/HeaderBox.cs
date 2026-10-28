@@ -125,7 +125,7 @@ namespace Xwt.GtkBackend
 			}
 		
 			if (GradientBackround) {
-				Color gcol = Style.Background (Gtk.StateType.Normal).ToXwtValue ();
+				Color gcol = StyleContext.GetBackgroundColor (Gtk.StateFlags.Normal).ToXwtValue ();
 			
 				cr.NewPath ();
 				cr.MoveTo (rect.X, rect.Y);
@@ -144,7 +144,7 @@ namespace Xwt.GtkBackend
 				}
 			}
 		
-			cr.SetSourceColor (color.HasValue ? color.Value.ToCairoColor () : Style.Dark (Gtk.StateType.Normal).ToXwtValue ().ToCairoColor ());
+			cr.SetSourceColor (color.HasValue ? color.Value.ToCairoColor () : StyleContext.GetColor (Gtk.StateFlags.Normal).ToXwtValue ().ToCairoColor ());
 			cr.Rectangle (rect.X, rect.Y, rect.Width, topMargin);
 			cr.Rectangle (rect.X, rect.Y + rect.Height - bottomMargin, rect.Width, bottomMargin);
 			cr.Rectangle (rect.X, rect.Y, leftMargin, rect.Height);

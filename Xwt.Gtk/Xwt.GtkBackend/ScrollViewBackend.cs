@@ -210,13 +210,21 @@ namespace Xwt.GtkBackend
 				child.SizeAllocate (allocation);
 		}
 
-		protected override void OnSizeRequested (ref Gtk.Requisition requisition)
+		protected override void OnGetPreferredWidth (out int minimum_width, out int natural_width)
 		{
 			if (Child != null) {
-				requisition = Child.SizeRequest ();
+				Child.GetPreferredWidth (out minimum_width, out natural_width);
 			} else {
-				requisition.Width = 0;
-				requisition.Height = 0;
+				minimum_width = natural_width = 0;
+			}
+		}
+
+		protected override void OnGetPreferredHeight (out int minimum_height, out int natural_height)
+		{
+			if (Child != null) {
+				Child.GetPreferredHeight (out minimum_height, out natural_height);
+			} else {
+				minimum_height = natural_height = 0;
 			}
 		}
 

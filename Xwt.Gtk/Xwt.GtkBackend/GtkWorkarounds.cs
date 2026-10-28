@@ -835,6 +835,7 @@ namespace Xwt.GtkBackend
 			objc_msgSend_IntPtr (ptr, sel_invalidateShadow);
 		}
 
+#if !XWT_GTK3
 		[DllImport (GtkInterop.LIBGTKGLUE, CallingConvention = CallingConvention.Cdecl)]
 		static extern void gtksharp_container_leak_fixed_marker ();
 
@@ -989,6 +990,7 @@ namespace Xwt.GtkBackend
 		
 		[DllImport(GtkInterop.LIBGTKGLUE, CallingConvention = CallingConvention.Cdecl)]
 		static extern void gtksharp_container_override_forall (IntPtr gtype, ForallDelegate cb);
+#endif
 
 		public static void SetLinkHandler (this Gtk.Label label, Action<string> urlHandler)
 		{
@@ -1301,17 +1303,8 @@ namespace Xwt.GtkBackend
 			return g_object_get_data (o.Handle, name);
 		}
 
-		[DllImport (GtkInterop.LIBGTK, CallingConvention = CallingConvention.Cdecl)]
-		static extern void gtk_object_set_data (IntPtr raw, IntPtr key, IntPtr data);
-
 		public static void SetData<T> (GLib.Object gtkobject, string key, T data) where T : struct
 		{
-			IntPtr pkey = GLib.Marshaller.StringToPtrGStrdup (key);
-			IntPtr pdata = Marshal.AllocHGlobal (Marshal.SizeOf (data));
-			Marshal.StructureToPtr (data, pdata, false);
-			gtk_object_set_data (gtkobject.Handle, pkey, pdata);
-			Marshal.FreeHGlobal (pdata);
-			GLib.Marshaller.Free (pkey);
 			gtkobject.Data [key] = data;
 		}
 

@@ -62,7 +62,7 @@ namespace Xwt.GtkBackend
 			get { return (Gtk.TreeStore) Store; }
 		}
 
-		public override TreeModel InitializeModel (Type[] columnTypes)
+		public override ITreeModel InitializeModel (Type[] columnTypes)
 		{
 			return new Gtk.TreeStore (columnTypes);
 		}

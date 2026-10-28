@@ -198,7 +198,7 @@ namespace Xwt.GtkBackend
 
 		public Xwt.Drawing.Color TextColor {
 			get {
-				return textColor.HasValue ? textColor.Value : Widget.Style.Foreground (Gtk.StateType.Normal).ToXwtValue ();
+				return textColor.HasValue ? textColor.Value : Widget.StyleContext.GetColor (Gtk.StateFlags.Normal).ToXwtValue ();
 			}
 			set {
 				var color = value.ToGtkValue ();

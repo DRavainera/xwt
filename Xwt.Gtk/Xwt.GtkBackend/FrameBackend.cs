@@ -165,7 +165,7 @@ namespace Xwt.GtkBackend
 		public Color BorderColor {
 			get {
 				if (borderColor == null)
-					return Widget.Style.Dark (Gtk.StateType.Normal).ToXwtValue ();
+					return Widget.StyleContext.GetColor (Gtk.StateFlags.Normal).ToXwtValue ();
 				else
 					return borderColor.Value;
 			}

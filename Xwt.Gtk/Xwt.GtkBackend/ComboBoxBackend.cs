@@ -66,7 +66,7 @@ namespace Xwt.GtkBackend
 			get { return (IComboBoxEventSink)base.EventSink; }
 		}
 
-		bool IsRowSeparator (TreeModel model, Gtk.TreeIter iter)
+		bool IsRowSeparator (ITreeModel model, Gtk.TreeIter iter)
 		{
 			Gtk.TreePath path = model.GetPath (iter);
 			bool res = false;
@@ -168,7 +168,7 @@ namespace Xwt.GtkBackend
 		Gtk.Widget ICellRendererTarget.EventRootWidget {
 			get { return Widget; }
 		}
-		TreeModel ICellRendererTarget.Model {
+		ITreeModel ICellRendererTarget.Model {
 			get { return Widget.Model; }
 		}
 

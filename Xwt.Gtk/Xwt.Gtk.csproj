@@ -15,14 +15,11 @@
     <PublicSign Condition="Exists('$(MSBuildThisFileDirectory)..\..\..\MonoDevelop.props')">true</PublicSign>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);612;618</WarningsNotAsErrors>
     <LangVersion>latest</LangVersion>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <DefineConstants>$(DefineConstants);XWT_GTK3</DefineConstants>
   </PropertyGroup>
-  <ItemGroup>
-    <Reference Include="Mono.Cairo">
-      <HintPath>$(MonoFrameworkNet45Directory)/Mono.Cairo.dll</HintPath>
-    </Reference>
-  </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.cs" />
     <Compile Include="Xwt.GtkBackend\LabelBackend.cs" />
@@ -105,7 +102,7 @@
     <Compile Include="Xwt.GtkBackend.CellViews\CustomCellRendererText.cs" />
     <Compile Include="Xwt.GtkBackend.CellViews\CustomCellRendererToggle.cs" />
     <Compile Include="Xwt.GtkBackend.CellViews\CustomCellRendererImage.cs" />
-    <Compile Include="Xwt.GtkBackend.CellViews\Gtk2CellRendererCustom.cs" />
+    <Compile Include="Xwt.GtkBackend.CellViews\Gtk3CellRendererCustom.cs" />
     <Compile Include="Xwt.GtkBackend\ScrollbarBackend.cs" />
     <Compile Include="Xwt.GtkBackend\GtkKeyboardHandler.cs" />
     <Compile Include="Xwt.GtkBackend\Conversion.cs" />
@@ -115,21 +112,22 @@
     </Compile>
     <Compile Include="Xwt.GtkBackend.CellViews\CellViewBackend.cs" />
     <Compile Include="Xwt.GtkBackend\SearchTextEntryBackend.cs" />
-    <Compile Include="Xwt.GtkBackend\Gtk2Extensions.cs" />
-    <Compile Include="Xwt.GtkBackend\Gtk2ViewPort.cs" />
-    <Compile Include="Xwt.GtkBackend\Gtk2DrawingArea.cs" />
-    <Compile Include="Xwt.GtkBackend\WidgetBackendGtk2.cs" />
-    <Compile Include="Xwt.GtkBackend\TextEntryBackendGtk2.cs" />
-    <Compile Include="Xwt.GtkBackend\PasswordEntryBackendGtk2.cs" />
-    <Compile Include="Xwt.GtkBackend\LabelBackendGtk2.cs" />
-    <Compile Include="Xwt.GtkBackend\ButtonBackendGtk2.cs" />
-    <Compile Include="Xwt.GtkBackend\SpinButtonBackendGtk2.cs" />
-    <Compile Include="Xwt.GtkBackend\BoxBackendGtk2.cs" />
-    <Compile Include="Xwt.GtkBackend\CanvasBackendGtk2.cs" />
-    <Compile Include="Xwt.GtkBackend\HeaderBoxGtk2.cs" />
+    <Compile Include="Xwt.GtkBackend\Gtk3Extensions.cs" />
+    <Compile Include="Xwt.GtkBackend\Gtk3ViewPort.cs" />
+    <Compile Include="Xwt.GtkBackend\Gtk3DrawingArea.cs" />
+    <Compile Include="Xwt.GtkBackend\WidgetBackendGtk3.cs" />
+    <Compile Include="Xwt.GtkBackend\TextEntryBackendGtk3.cs" />
+    <Compile Include="Xwt.GtkBackend\PasswordEntryBackendGtk3.cs" />
+    <Compile Include="Xwt.GtkBackend\LabelBackendGtk3.cs" />
+    <Compile Include="Xwt.GtkBackend\ButtonBackendGtk3.cs" />
+    <Compile Include="Xwt.GtkBackend\SpinButtonBackendGtk3.cs" />
+    <Compile Include="Xwt.GtkBackend\BoxBackendGtk3.cs" />
+    <Compile Include="Xwt.GtkBackend\CanvasBackendGtk3.cs" />
+    <Compile Include="Xwt.GtkBackend\HeaderBoxGtk3.cs" />
     <Compile Include="Xwt.GtkBackend\WebViewBackend.cs" />
     <Compile Include="Xwt.GtkBackend\GtkWebKitMini.cs" />
-    <Compile Include="Xwt.GtkBackend\Gtk2PopoverWindow.cs" />
+    <Compile Include="Xwt.GtkBackend\Gtk3PopoverWindow.cs" />
+    <Compile Include="Xwt.GtkBackend\Gtk3FontChooserDialog.cs" />
     <Compile Include="Xwt.GtkBackend\ColorSelectorBackend.cs" />
     <Compile Include="Xwt.GtkBackend\ColorPickerBackend.cs" />
     <Compile Include="Xwt.GtkBackend\CalendarBackend.cs" />

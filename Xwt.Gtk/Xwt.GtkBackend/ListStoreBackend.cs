@@ -35,7 +35,7 @@ namespace Xwt.GtkBackend
 {
 	public class ListStoreBackend: TableStoreBackend, IListStoreBackend
 	{
-		public override TreeModel InitializeModel (Type[] columnTypes)
+		public override ITreeModel InitializeModel (Type[] columnTypes)
 		{
 			var store = new Gtk.ListStore (columnTypes);
 			store.RowInserted += (o, args) => {

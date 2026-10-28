@@ -110,8 +110,9 @@ namespace Xwt.GtkBackend
 			y += rect.Y + rect.Height;
 			
 			//if the menu would be off the bottom of the screen, "drop" it upwards
-			if (y + mn.Requisition.Height > w.Screen.Height) {
-				y -= mn.Requisition.Height;
+			mn.GetPreferredSize (out _, out var menuReq);
+			if (y + menuReq.Height > w.Screen.Height) {
+				y -= menuReq.Height;
 				y -= rect.Height;
 			}
 			

@@ -159,6 +159,12 @@ namespace Xwt.GtkBackend.WebKit
 				}
 			}
 		}
+
+		public bool GetBorder (out Gtk.Border border)
+		{
+			border = Gtk.Border.New ();
+			return true;
+		}
 		#endif
 
 		public void StopLoading() {

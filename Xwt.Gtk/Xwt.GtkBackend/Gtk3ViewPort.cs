@@ -79,8 +79,10 @@ namespace Xwt.GtkBackend
 		{
 		}
 
-		protected virtual void OnSizeRequested (ref Gtk.Requisition requisition)
+		public bool GetBorder (out Gtk.Border border)
 		{
+			border = Gtk.Border.New ();
+			return true;
 		}
 	}
 }

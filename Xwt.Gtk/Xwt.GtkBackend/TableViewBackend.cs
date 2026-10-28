@@ -452,7 +452,7 @@ namespace Xwt.GtkBackend
 			get { return Widget; }
 		}
 
-		TreeModel ICellRendererTarget.Model {
+		ITreeModel ICellRendererTarget.Model {
 			get { return Widget.Model; }
 		}
 

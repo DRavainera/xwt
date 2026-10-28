@@ -40,9 +40,9 @@ namespace Xwt.GtkBackend
 		class CellDataSource: ICellDataSource
 		{
 			TreeIter iter;
-			TreeModel treeModel;
+			ITreeModel treeModel;
 
-			public CellDataSource (TreeIter iter, TreeModel treeModel)
+			public CellDataSource (TreeIter iter, ITreeModel treeModel)
 			{
 				this.iter = iter;
 				this.treeModel = treeModel;
@@ -106,7 +106,7 @@ namespace Xwt.GtkBackend
 			throw new NotImplementedException ();
 		}
 
-		public static void SetModelValue (TreeModel store, Gtk.TreeIter it, int column, Type type, object value)
+		public static void SetModelValue (ITreeModel store, Gtk.TreeIter it, int column, Type type, object value)
 		{
 			if (type == typeof(ObjectWrapper) && value != null)
 				store.SetValue (it, column, new ObjectWrapper (value));
@@ -116,7 +116,7 @@ namespace Xwt.GtkBackend
 				store.SetValue (it, column, value ?? DBNull.Value);
 		}
 
-		public static object GetModelValue (TreeModel store, Gtk.TreeIter it, int column)
+		public static object GetModelValue (ITreeModel store, Gtk.TreeIter it, int column)
 		{
 			object val = store.GetValue (it, column);
 			if (val is DBNull)
@@ -159,7 +159,7 @@ namespace Xwt.GtkBackend
 		bool GetCellPosition (Gtk.CellRenderer r, int ex, int ey, out int cx, out int cy, out Gtk.TreeIter iter);
 		void QueueDraw (object target, Gtk.TreeIter iter);
 		void QueueResize (object target, Gtk.TreeIter iter);
-		TreeModel Model { get; }
+		ITreeModel Model { get; }
 		Gtk.TreeIter PressedIter { get; set; }
 		CellViewBackend PressedCell { get; set; }
 	}

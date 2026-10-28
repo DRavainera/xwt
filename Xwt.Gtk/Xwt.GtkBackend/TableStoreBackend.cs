@@ -42,7 +42,7 @@ namespace Xwt.GtkBackend
 			private set;
 		}
 
-		public TreeModel Store {
+		public ITreeModel Store {
 			get;
 			protected set;
 		}
@@ -66,7 +66,7 @@ namespace Xwt.GtkBackend
 			Store = InitializeModel (ColumnTypes);
 		}
 
-		public abstract TreeModel InitializeModel (Type[] columnTypes);
+		public abstract ITreeModel InitializeModel (Type[] columnTypes);
 		
 		public void InitializeBackend (object frontend, ApplicationContext context)
 		{
