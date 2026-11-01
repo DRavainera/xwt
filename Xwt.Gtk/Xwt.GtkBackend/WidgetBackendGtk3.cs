@@ -31,6 +31,8 @@ namespace Xwt.GtkBackend
 {
 	public partial class WidgetBackend
 	{
+		bool gettingPreferredSize;
+
 		protected Gtk.IEditable EditableWidget 
 		{
 			get { return Widget as Gtk.IEditable; }
@@ -82,17 +84,22 @@ namespace Xwt.GtkBackend
 				}
 			}
 
-			if ((enabledEvents & WidgetEvent.PreferredSizeCheck) != 0) {
+			if (!gettingPreferredSize && (enabledEvents & WidgetEvent.PreferredSizeCheck) != 0) {
 				SizeConstraint wc = SizeConstraint.Unconstrained, hc = SizeConstraint.Unconstrained;
 				var cp = Widget.Parent as IConstraintProvider;
 				if (cp != null)
 					cp.GetConstraints (Widget, out wc, out hc);
 
-				ApplicationContext.InvokeUserCode (delegate {
-					var w = eventSink.GetPreferredSize (wc, hc);
-					min_width = (int) w.Width;
-					min_height = (int) w.Height;
-				});
+				gettingPreferredSize = true;
+				try {
+					ApplicationContext.InvokeUserCode (delegate {
+						var w = eventSink.GetPreferredSize (wc, hc);
+						min_width = (int) w.Width;
+						min_height = (int) w.Height;
+					});
+				} finally {
+					gettingPreferredSize = false;
+				}
 			}
 
 			if (Widget.WidthRequest > min_width)
