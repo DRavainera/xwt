@@ -51,30 +51,49 @@ namespace Xwt.GtkBackend
 			return (Gtk.SizeRequestMode)2;
 		}
 
+		// Preferred size of the canvas content: query each visible child for its own
+		// preferred size (recursing into nested canvases/containers) and extend it to
+		// the child's last-known offset. Using the cached allocations directly is wrong:
+		// they are (0,0,0,0) before the first layout and stale afterwards.
+		void CalcPreferredContent (out int minimum_width, out int natural_width, out int minimum_height, out int natural_height)
+		{
+			minimum_width = natural_width = (Backend.Frontend.MinWidth > 0 ? (int) Backend.Frontend.MinWidth : 0);
+			minimum_height = natural_height = (Backend.Frontend.MinHeight > 0 ? (int) Backend.Frontend.MinHeight : 0);
+			foreach (var cr in children.Where (c => c.Key.Visible)) {
+				int childMinWidth, childNatWidth, childMinHeight, childNatHeight;
+				cr.Key.GetPreferredWidth (out childMinWidth, out childNatWidth);
+				cr.Key.GetPreferredHeight (out childMinHeight, out childNatHeight);
+				minimum_width = (int) Math.Max (minimum_width, cr.Value.X + childMinWidth);
+				natural_width = (int) Math.Max (natural_width, cr.Value.X + childNatWidth);
+				minimum_height = (int) Math.Max (minimum_height, cr.Value.Y + childMinHeight);
+				natural_height = (int) Math.Max (natural_height, cr.Value.Y + childNatHeight);
+			}
+		}
+
 		protected override void OnGetPreferredHeight (out int minimum_height, out int natural_height)
 		{
 			if (HeightRequest > 0)
 				minimum_height = natural_height = HeightRequest;
-			else {
-				minimum_height = natural_height = (Backend.Frontend.MinHeight > 0 ? (int) Backend.Frontend.MinHeight : 0);
-				foreach (var cr in children.Where (c => c.Key.Visible)) {
-					minimum_height = (int) Math.Max (minimum_height, cr.Value.Y + cr.Value.Height);
-					natural_height = (int) Math.Max (natural_height, cr.Value.Y + cr.Value.Height);
-				}
-			}
+			else
+				CalcPreferredContent (out _, out _, out minimum_height, out natural_height);
 		}
 
 		protected override void OnGetPreferredWidth (out int minimum_width, out int natural_width)
 		{
 			if (WidthRequest > 0)
 				minimum_width = natural_width = WidthRequest;
-			else {
-				minimum_width = natural_width = (Backend.Frontend.MinWidth > 0 ? (int)Backend.Frontend.MinWidth : 0);
-				foreach (var cr in children.Where (c => c.Key.Visible)) {
-					minimum_width = (int) Math.Max (minimum_width, cr.Value.X + cr.Value.Height);
-					natural_width = (int) Math.Max (natural_width, cr.Value.X + cr.Value.Height);
-				}
-			}
+			else
+				CalcPreferredContent (out minimum_width, out natural_width, out _, out _);
+		}
+
+		protected override void OnGetPreferredHeightForWidth (int for_width, out int minimum_height, out int natural_height)
+		{
+			OnGetPreferredHeight (out minimum_height, out natural_height);
+		}
+
+		protected override void OnGetPreferredWidthForHeight (int for_height, out int minimum_width, out int natural_width)
+		{
+			OnGetPreferredWidth (out minimum_width, out natural_width);
 		}
 	}
 
