@@ -45,6 +45,7 @@ namespace Xwt.GtkBackend
 			Widget = (Gtk.ComboBox) CreateWidget ();
 			if (Widget.Cells.Length == 0) {
 				var cr = new Gtk.CellRendererText ();
+				cr.Ypad = 4;
 				Widget.PackStart (cr, false);
 				Widget.AddAttribute (cr, "text", 0);
 			}

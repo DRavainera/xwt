@@ -59,6 +59,7 @@ namespace Xwt.GtkBackend
 			Widget.AppendColumn (theColumn);
 			
 			var cr = new Gtk.CellRendererText ();
+			cr.Ypad = 4;
 			theColumn.PackStart (cr, false);
 			theColumn.AddAttribute (cr, "text", 0);
 		}

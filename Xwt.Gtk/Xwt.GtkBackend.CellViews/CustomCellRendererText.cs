@@ -37,6 +37,7 @@ namespace Xwt.GtkBackend
 		public CustomCellRendererText ()
 		{
 			CellRenderer = cellRenderer = new Gtk.CellRendererText ();
+			cellRenderer.Ypad = 4;
 			cellRenderer.Edited += HandleEdited;
 		}
 
