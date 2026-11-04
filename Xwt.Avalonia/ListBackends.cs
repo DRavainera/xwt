@@ -191,6 +191,12 @@ namespace Xwt.AvaloniaBackend
 		public ScrollPolicy VerticalPolicy = ScrollPolicy.Automatic;
 		public ScrollPolicy HorizontalPolicy = ScrollPolicy.Automatic;
 
+		// Tree mode: each row gets a leading TreeGutter column (indentation rails +
+		// expander triangle) ahead of the data cells. Off for the flat list family.
+		public bool IsTree;
+		public const double IndentUnit = 16;   // horizontal step per tree level
+		public const double ExpanderSlot = 16; // reserved for the triangle before the icon
+
 		public RowPanelHost ()
 			=> ScrollViewer.Content = Panel;
 
@@ -208,6 +214,26 @@ namespace Xwt.AvaloniaBackend
 				var row = new RowPresenter { Position = spec.Position, Depth = spec.Depth, HasExpander = spec.HasExpander, IsExpanded = spec.IsExpanded };
 				var grid = row.Visual;
 				int columnIndex = 0;
+				if (IsTree) {
+					// Leading gutter: fixed-width column that owns the indentation
+					// (so the row grid no longer needs a depth Margin) and draws the
+					// expander triangle + per-level guide lines.
+					grid.ColumnDefinitions.Add (new AColumnDefinition {
+						Width = new AGridLength (spec.Depth * IndentUnit + ExpanderSlot, AGridUnitType.Pixel)
+					});
+					var gutter = new TreeGutter {
+						Depth = spec.Depth,
+						HasExpander = spec.HasExpander,
+						IsExpanded = spec.IsExpanded,
+						IndentUnit = IndentUnit,
+						ExpanderSlot = ExpanderSlot,
+						HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch,
+						VerticalAlignment = Avalonia.Layout.VerticalAlignment.Stretch,
+					};
+					AGrid.SetColumn (gutter, 0);
+					grid.Children.Add (gutter);
+					columnIndex = 1;
+				}
 				foreach (var col in Columns) {
 					grid.ColumnDefinitions.Add (new AColumnDefinition {
 						Width = new AGridLength (1, col.Expands ? AGridUnitType.Star : AGridUnitType.Auto)
@@ -660,7 +686,7 @@ namespace Xwt.AvaloniaBackend
 		bool headersVisible = true;
 		bool borderVisible = true;
 
-		public TreeViewBackend () { }
+		public TreeViewBackend () => Host.IsTree = true;
 
 		protected override AControl CreateNativeWidget ()
 		{
@@ -749,8 +775,10 @@ namespace Xwt.AvaloniaBackend
 			ApplySelectionVisuals ();
 			if (TableSink != null)
 				InvokeUser (TableSink.OnSelectionChanged);
-			// The expander gutter toggles expansion (Xwt tree behaviour).
-			if (presenter.HasExpander && p.X < 18 + presenter.Depth * 16) {
+			// The expander gutter toggles expansion (Xwt tree behaviour). The
+			// gutter spans [0, Depth*IndentUnit + ExpanderSlot); a press there
+			// (the triangle / indent area, left of the first cell) toggles.
+			if (presenter.HasExpander && p.X < presenter.Depth * RowPanelHost.IndentUnit + RowPanelHost.ExpanderSlot) {
 				ToggleExpansion (pos);
 			}
 		}
@@ -860,10 +888,14 @@ namespace Xwt.AvaloniaBackend
 		protected override void ApplySelectionVisuals ()
 		{
 			base.ApplySelectionVisuals ();
-			// Indentation + expander gutter are part of the tree look; the
-			// expander glyph itself lands with the cell-margin wave.
+			// The tree rows must be hit-test visible across their FULL width
+			// (gutter included) so a press in the indent area toggles expansion.
+			// The base leaves unselected rows with a null background, which Avalonia
+			// treats as not hit-testable (the press would fall through the empty
+			// indent area); a transparent background is covered without painting.
 			foreach (var row in Host.Rows)
-				row.Visual.Margin = new Thickness (row.Depth * 16, 0, 0, 0);
+				if (row.Visual.Background == null)
+					row.Visual.Background = Brushes.Transparent;
 		}
 
 		public override object AddColumn (ListViewColumn col)
