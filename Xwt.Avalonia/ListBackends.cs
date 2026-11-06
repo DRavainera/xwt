@@ -1192,8 +1192,15 @@ namespace Xwt.AvaloniaBackend
 		public TreePosition GetParent (TreePosition pos)
 			=> pos is TreeNodeHandle n ? n.Parent : null;
 
+		// Out-of-range indices return null (the ITreeStoreBackend contract):
+		// TreeNavigator.MoveToChild relies on it to report "no children" — an
+		// unbounded indexer here turns every leaf into an exception and breaks
+		// any full-store walk (tag search, FindNavigators, RemoveChildren).
 		public TreePosition GetChild (TreePosition pos, int index)
-			=> pos is TreeNodeHandle n ? n.Children [index] : roots [index];
+		{
+			var children = pos is TreeNodeHandle n ? n.Children : roots;
+			return index >= 0 && index < children.Count ? children [index] : null;
+		}
 
 		public int GetChildrenCount (TreePosition pos)
 			=> pos is TreeNodeHandle n ? n.Children.Count : roots.Count;
