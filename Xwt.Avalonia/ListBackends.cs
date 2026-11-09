@@ -114,7 +114,10 @@ namespace Xwt.AvaloniaBackend
 		/// <summary>Rasterizes a Xwt image with the wave-1 image backend (the
 		/// custom-drawn/vector images replay at the requested size — a ThemedImage
 		/// from FromFile has no declared backend size, so without it the replay
-		/// would collapse to the 1x1 fallback).</summary>
+		/// would collapse to the 1x1 fallback). Bitmaps are scaled to the size the
+		/// frontend requested (WithSize — "the image is scaled when it is
+		/// rendered"); without it a 32px PNG WithSize(16,16) would render at its
+		/// native 32px inside the 16px row (Stretch.None).</summary>
 		public static Avalonia.Media.IImage ImageToSource (Xwt.Drawing.Image image)
 		{
 			if (image == null)
@@ -128,6 +131,22 @@ namespace Xwt.AvaloniaBackend
 					using var converted = image.ToBitmap ();
 					bmp = AvaloniaImageBackend.GetBitmap (Toolkit.GetBackend (converted));
 					return bmp?.ToAvaloniaBitmap ();
+				}
+				var size = image.Size;
+				if (size.Width > 0 && size.Height > 0 &&
+					(size.Width != bmp.Width || size.Height != bmp.Height)) {
+					// Same rasterization pattern as RenderCustomDrawStatic
+					// (this SkiaSharp build surfaces create from an
+					// SKImageInfo over the pixel buffer).
+					var w = Math.Max (1, (int)Math.Round (size.Width));
+					var h = Math.Max (1, (int)Math.Round (size.Height));
+					var info = new SKImageInfo (w, h, SKColorType.Bgra8888, SKAlphaType.Premul);
+					using var scaled = new SKBitmap (info);
+					using var surface = SKSurface.Create (info, scaled.GetPixels (), scaled.RowBytes);
+					var paint = new SKPaint { IsAntialias = true, FilterQuality = SKFilterQuality.Medium };
+					surface.Canvas.DrawBitmap (bmp, new SKRect (0, 0, bmp.Width, bmp.Height),
+						new SKRect (0, 0, w, h), paint);
+					return scaled.ToAvaloniaBitmap ();
 				}
 				return bmp.ToAvaloniaBitmap ();
 			} catch {
