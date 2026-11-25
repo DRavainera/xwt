@@ -396,6 +396,18 @@ namespace Xwt
 		}
 
 		/// <summary>
+		/// Filters the visible rows: a row stays visible when it matches the
+		/// predicate or has a matching descendant; ancestors of matches are kept
+		/// and expanded. Pass a null predicate to restore the whole tree.
+		/// Backends that don't support filtering ignore the call.
+		/// </summary>
+		public void ApplyFilter (Func<TreePosition, bool> match)
+		{
+			if (Backend is ITreeViewFilterBackend filterBackend)
+				filterBackend.ApplyFilter (match);
+		}
+
+		/// <summary>
 		/// Recursively expands all nodes of the tree
 		/// </summary>
 		public void ExpandAll ()

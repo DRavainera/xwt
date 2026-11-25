@@ -87,5 +87,16 @@ namespace Xwt.Backends
 		void OnRowCollapsing (TreePosition position);
 		void OnRowCollapsed (TreePosition position);
 	}
+
+	/// <summary>Optional tree filtering support. A backend that implements it can
+	/// hide the rows that don't match a predicate (the Gtk backend filters through
+	/// a Gtk.TreeModelFilter instead, so it doesn't implement this).</summary>
+	public interface ITreeViewFilterBackend
+	{
+		/// <summary>Applies a row filter: a row stays visible when it matches the
+		/// predicate or has a matching descendant. A null predicate restores every
+		/// row.</summary>
+		void ApplyFilter (Func<TreePosition, bool> match);
+	}
 }
 

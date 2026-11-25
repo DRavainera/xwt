@@ -695,11 +695,12 @@ namespace Xwt.AvaloniaBackend
 
 	// ----- TreeView (Xwt.TreeView ↔ flattened tree row panel) -----
 
-	public class TreeViewBackend : TableBackendBase, ITreeViewBackend
+	public class TreeViewBackend : TableBackendBase, ITreeViewBackend, ITreeViewFilterBackend
 	{
 		ITreeDataSource treeSource;
 		readonly HashSet<TreePosition> expanded = new ();
 		readonly HashSet<TreePosition> collapsed = new (); // default-expanded semantics
+		readonly HashSet<TreePosition> hidden = new (); // Solution pad incremental filter (hidden rows)
 		readonly List<(ListViewColumn Column, object Handle)> columns = new ();
 		TreePosition focused;
 		bool headersVisible = true;
@@ -863,6 +864,47 @@ namespace Xwt.AvaloniaBackend
 			ApplySelectionVisuals ();
 		}
 
+		// Solution pad incremental filter: hide rows that don't match the filter
+		// and don't have a matching descendant. Ancestors of matches stay visible
+		// and are expanded. Pass an empty filter to restore the whole tree.
+		public void ApplyFilter (Func<TreePosition, bool> match)
+		{
+			if (treeSource == null)
+				return;
+			hidden.Clear ();
+			if (match is null) {
+				Rebuild ();
+				return;
+			}
+			// Walk from roots; a node is visible if it matches or has a visible child.
+			Func<TreePosition, bool> visible = null;
+			visible = pos => {
+				int count = treeSource.GetChildrenCount (pos);
+				bool anyChildVisible = false;
+				for (int i = 0; i < count; i++) {
+					var child = treeSource.GetChild (pos, i);
+					if (child == null) continue;
+					if (visible (child))
+						anyChildVisible = true;
+				}
+				bool selfMatch = match (pos);
+				if (selfMatch || anyChildVisible) {
+					if (anyChildVisible)
+						collapsed.Remove (pos);
+					return true;
+				}
+				hidden.Add (pos);
+				return false;
+			};
+			int rootCount = treeSource.GetChildrenCount (null);
+			for (int i = 0; i < rootCount; i++) {
+				var root = treeSource.GetChild (null, i);
+				if (root != null)
+					visible (root);
+			}
+			Rebuild ();
+		}
+
 		/// <summary>Depth-first flatten of the VISIBLE tree: children of an
 		/// unexpanded node are skipped; root children are GetChild(null, i).</summary>
 		IEnumerable<RowSpec> FlattenTree ()
@@ -879,6 +921,8 @@ namespace Xwt.AvaloniaBackend
 					if (child == null)
 						continue;
 					bool hasKids = treeSource.GetChildrenCount (child) > 0;
+					if (hidden.Contains (child))
+						continue;
 					bool isOpen = !collapsed.Contains (child); // default-expanded tree (Solution pad)
 					specs.Add (new RowSpec { Position = child, Depth = depth, HasExpander = hasKids, IsExpanded = isOpen });
 					if (isOpen)
@@ -1078,6 +1122,10 @@ namespace Xwt.AvaloniaBackend
 				return row >= 0 && row < Host.Rows.Count ? Host.Rows [row].Position : null;
 			}
 		}
+
+		/// <summary>The number of rows currently painted (after the filter and the
+		/// expansion state) — the Solution pad's QA-visible row count.</summary>
+		public int VisibleRowCount => Host.Rows.Count;
 
 		public override void Dispose () => Unsubscribe ();
 	}
